@@ -1,0 +1,53 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>kokoro live2d-test</title>
+<style>
+:root{--cream:#FFF8EE;--ink:#3a3026;--gold:#d4a853}
+*{box-sizing:border-box}body{margin:0;background:#2b2926;color:#e9dec8;font-family:system-ui,'Hiragino Kaku Gothic ProN',sans-serif;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px}
+h1{font-size:15px;color:#f0e6d2;margin:2px 0}.sub{font-size:11px;color:#b6a988;margin:-6px 0 4px;text-align:center}
+.stage{background:var(--cream);border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:6px;line-height:0}
+canvas{border-radius:14px;display:block}
+.panel{background:#37322c;border:1px solid #4a4339;border-radius:14px;padding:12px 16px;width:420px;max-width:94vw;font-size:12px;display:flex;flex-direction:column;gap:10px}
+#status{font-size:12px;color:#cdbf9d}
+.row{display:flex;align-items:center;gap:10px}.row label{color:#cdbf9d}.row input[type=range]{flex:1}
+button{font-family:inherit;font-weight:700;font-size:13px;color:var(--ink);background:var(--gold);border:0;border-radius:10px;padding:9px 16px;cursor:pointer;min-height:44px}
+small{color:#9a8e72;font-size:11px}
+</style></head><body>
+<h1>Live2D ランタイム検証（Hiyoriサンプル）</h1>
+<div class="sub">PIXI + pixi-live2d-display + Cubism Core 全部CDN／GitHub Pagesで実際に動くかの実証。<br>本番はここに「ココロ.moc3」を差し替えるだけ。</div>
+<div class="stage"><canvas id="cv" width="420" height="540"></canvas></div>
+<div class="panel">
+  <div id="status">読み込み中…</div>
+  <div class="row"><button id="mic">マイク開始</button>
+    <label>口（手動）</label><input id="mouth" type="range" min="0" max="1" step="0.01" value="0"></div>
+  <small>顔の向き・髪の揺れ＝モデルのアイドル動作＋振り子物理（自動）。口＝スライダー or マイク音量で ParamMouthOpenY を駆動。</small>
+</div>
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.2/dist/browser/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"></script>
+<script>
+var MODEL="https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@develop/Samples/Resources/Hiyori/Hiyori.model3.json";
+var cv=document.getElementById('cv'), st=document.getElementById('status');
+var app=new PIXI.Application({view:cv,width:420,height:540,backgroundAlpha:0,antialias:true,autoStart:true});
+var mouthManual=0, micOn=false, analyser=null, buf=null;
+function micLevel(){ if(!analyser) return 0; analyser.getFloatTimeDomainData(buf); var s=0,i; for(i=0;i<buf.length;i++) s+=buf[i]*buf[i]; return Math.min(1, Math.sqrt(s/buf.length)*4); }
+(async function(){
+  try{
+    if(!(PIXI && PIXI.live2d && PIXI.live2d.Live2DModel)){ st.textContent="ERROR: pixi-live2d-display 未ロード"; return; }
+    var model=await PIXI.live2d.Live2DModel.from(MODEL);
+    app.stage.addChild(model);
+    var s=Math.min(app.renderer.width/model.width, app.renderer.height/model.height)*0.96;
+    model.scale.set(s); model.anchor.set(0.5,0.5);
+    model.position.set(app.renderer.width/2, app.renderer.height/2);
+    var mm=model.internalModel.motionManager, orig=mm.update.bind(mm);
+    mm.update=function(core,now){ var r=orig(core,now); var v=Math.max(mouthManual, micOn?micLevel():0); core.setParameterValueById('ParamMouthOpenY', v); return r; };
+    st.textContent="OK: Live2D描画中（アイドル動作＋髪の振り子物理）。口スライダー/マイクを試して。";
+  }catch(e){ st.textContent="ERROR: "+(e&&e.message?e.message:e); console.error("live2d load fail",e); }
+})();
+document.getElementById('mouth').addEventListener('input',function(e){ mouthManual=parseFloat(e.target.value); });
+document.getElementById('mic').onclick=async function(e){
+  if(micOn){ micOn=false; e.target.textContent="マイク開始"; return; }
+  try{ var ms=await navigator.mediaDevices.getUserMedia({audio:true}); var c=new (window.AudioContext||window.webkitAudioContext)(); await c.resume(); var src=c.createMediaStreamSource(ms); analyser=c.createAnalyser(); analyser.fftSize=1024; buf=new Float32Array(analyser.fftSize); src.connect(analyser); micOn=true; e.target.textContent="マイク停止"; }
+  catch(err){ st.textContent="マイク不可: "+err.message; }
+};
+</script></body></html>
