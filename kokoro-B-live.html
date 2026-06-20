@@ -46,7 +46,13 @@ function drawAtlas(v,a,jx,i0,i1,fr){if(a<=.003||!ATLrdy[v])return;var im=ATL[v],
  _mx.clearRect(0,0,W,H);_mx.globalAlpha=1;_mx.drawImage(im,i0*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);if(fr>.02){_mx.globalAlpha=fr;_mx.drawImage(im,i1*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);_mx.globalAlpha=1;}
  _mx.globalCompositeOperation='destination-in';_mx.fillStyle=_mask;_mx.fillRect(0,0,W,H);_mx.globalCompositeOperation='source-over';
  x.globalAlpha=a;x.drawImage(_mc,0,0);x.globalAlpha=1;}
-function draw(){var fy=(sx+1)/2*(NY-1),i0=Math.floor(fy),i1=Math.min(NY-1,i0+1),fr=fy-i0;var jx=Math.max(0,Math.min(NX-1,Math.round((sy+1)/2*(NX-1))));x.clearRect(0,0,W,H);x.fillStyle='#efe9fb';x.fillRect(0,0,W,H);drawGrid(IM,1,jx,i0,i1,fr);for(var v=0;v<VOWELS.length;v++){var g=VOWELS[v];if(mouthW[g]>.003)drawAtlas(g,mouthW[g],jx,i0,i1,fr);}}
+// THA4 renders soft anti-aliased silhouettes that melt into the light bg. Define the contour:
+// take the closed frame's alpha, paint it dark, stamp it offset 8 ways behind the avatar -> a thin
+// outline ring shows around the silhouette. Tunable: OUTW (px), OUTCOL.
+var _sc=document.createElement('canvas');_sc.width=W;_sc.height=H;var _sx=_sc.getContext('2d');
+var OUTW=2,OUTCOL='rgba(46,30,68,0.78)';
+function drawOutline(img){if(!img)return;_sx.clearRect(0,0,W,H);_sx.globalAlpha=1;_sx.drawImage(img,0,0,W,H);_sx.globalCompositeOperation='source-in';_sx.fillStyle=OUTCOL;_sx.fillRect(0,0,W,H);_sx.globalCompositeOperation='source-over';for(var oy=-OUTW;oy<=OUTW;oy+=OUTW)for(var ox=-OUTW;ox<=OUTW;ox+=OUTW){if(ox||oy)x.drawImage(_sc,ox,oy);}}
+function draw(){var fy=(sx+1)/2*(NY-1),i0=Math.floor(fy),i1=Math.min(NY-1,i0+1),fr=fy-i0;var jx=Math.max(0,Math.min(NX-1,Math.round((sy+1)/2*(NX-1))));x.clearRect(0,0,W,H);x.fillStyle='#efe9fb';x.fillRect(0,0,W,H);drawOutline(IM[jx][i0]);drawGrid(IM,1,jx,i0,i1,fr);for(var v=0;v<VOWELS.length;v++){var g=VOWELS[v];if(mouthW[g]>.003)drawAtlas(g,mouthW[g],jx,i0,i1,fr);}}
 loadVoice('wagahai');
 function req(){requestAnimationFrame(tick);}
 </script></body></html>
