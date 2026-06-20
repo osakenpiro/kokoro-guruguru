@@ -36,7 +36,16 @@ function drawGrid(g,a,jx,i0,i1,fr){if(a<=.003||!g||!g[jx]||!g[jx][i0])return;x.g
 // nudge so the vowel avatar registers onto the closed avatar (measured: closed w130/h172 cy100,
 // vowel w83/h109 cy69.5 on a 200px probe). Without this the open-mouth frame renders small/offset.
 var MA=1.572,MDW=W*MA,MDH=H*MA,MDX=(W-MDW)/2,MDY=-20;
-function drawAtlas(v,a,jx,i0,i1,fr){if(a<=.003||!ATLrdy[v])return;var im=ATL[v],cw=im.naturalWidth/NY,ch=im.naturalHeight/NX;x.globalAlpha=a;x.drawImage(im,i0*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);if(fr>.02){x.globalAlpha=a*fr;x.drawImage(im,i1*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);}x.globalAlpha=1;}
+// vowel frames differ from closed across the WHOLE image (THA4 re-renders everything), so blending
+// the full frame makes the hair shimmer. Composite only a feathered ellipse around the mouth, so
+// hair/eyes/body always come from the stable closed frame; only the mouth shows the vowel.
+var _mc=document.createElement('canvas');_mc.width=W;_mc.height=H;var _mx=_mc.getContext('2d');
+var MCX=W*0.52,MCY=H*0.51,MR=W*0.165;
+var _mask=_mx.createRadialGradient(MCX,MCY,MR*0.5,MCX,MCY,MR);_mask.addColorStop(0,'rgba(0,0,0,1)');_mask.addColorStop(1,'rgba(0,0,0,0)');
+function drawAtlas(v,a,jx,i0,i1,fr){if(a<=.003||!ATLrdy[v])return;var im=ATL[v],cw=im.naturalWidth/NY,ch=im.naturalHeight/NX;
+ _mx.clearRect(0,0,W,H);_mx.globalAlpha=1;_mx.drawImage(im,i0*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);if(fr>.02){_mx.globalAlpha=fr;_mx.drawImage(im,i1*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);_mx.globalAlpha=1;}
+ _mx.globalCompositeOperation='destination-in';_mx.fillStyle=_mask;_mx.fillRect(0,0,W,H);_mx.globalCompositeOperation='source-over';
+ x.globalAlpha=a;x.drawImage(_mc,0,0);x.globalAlpha=1;}
 function draw(){var fy=(sx+1)/2*(NY-1),i0=Math.floor(fy),i1=Math.min(NY-1,i0+1),fr=fy-i0;var jx=Math.max(0,Math.min(NX-1,Math.round((sy+1)/2*(NX-1))));x.clearRect(0,0,W,H);x.fillStyle='#efe9fb';x.fillRect(0,0,W,H);drawGrid(IM,1,jx,i0,i1,fr);for(var v=0;v<VOWELS.length;v++){var g=VOWELS[v];if(mouthW[g]>.003)drawAtlas(g,mouthW[g],jx,i0,i1,fr);}}
 loadVoice('wagahai');
 function req(){requestAnimationFrame(tick);}
