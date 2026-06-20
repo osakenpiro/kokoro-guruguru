@@ -32,8 +32,12 @@ if(_pb)_pb.addEventListener('click',function(){ensureCtx();if(actx.state==='susp
 c.addEventListener('pointermove',function(e){var r=c.getBoundingClientRect();tx=Math.max(-1,Math.min(1,(e.clientX-(r.left+r.width/2))/(r.width/2)));ty=Math.max(-1,Math.min(1,(e.clientY-(r.top+r.height/2))/(r.height/2)));lastMove=performance.now();});
 function tick(now){var dt=Math.min(.05,(now-last)/1000);last=now;if(now-lastMove>2200){var p=now/1000;tx=0.55*Math.sin(p*0.22)+0.12*Math.sin(p*0.07);ty=0.32*Math.sin(p*0.3);}sx+=(tx-sx)*0.07;sy+=(ty-sy)*0.07;blinkT+=dt;if(!blinking&&blinkT>nextBlink){blinking=true;bt=0;}if(blinking){bt+=dt;if(bt>=0.26){blinking=false;blinkT=0;nextBlink=3+Math.random()*3.5;}}updateMouth(dt);draw();req();}
 function drawGrid(g,a,jx,i0,i1,fr){if(a<=.003||!g||!g[jx]||!g[jx][i0])return;x.globalAlpha=a;x.drawImage(g[jx][i0],0,0,W,H);if(fr>.02&&g[jx][i1]){x.globalAlpha=a*fr;x.drawImage(g[jx][i1],0,0,W,H);}x.globalAlpha=1;}
-function drawAtlas(v,a,jx,i0,i1,fr){if(a<=.003||!ATLrdy[v])return;var im=ATL[v],cw=im.naturalWidth/NY,ch=im.naturalHeight/NX;x.globalAlpha=a;x.drawImage(im,i0*cw,jx*ch,cw,ch,0,0,W,H);if(fr>.02){x.globalAlpha=a*fr;x.drawImage(im,i1*cw,jx*ch,cw,ch,0,0,W,H);}x.globalAlpha=1;}
-function draw(){var fy=(sx+1)/2*(NY-1),i0=Math.floor(fy),i1=Math.min(NY-1,i0+1),fr=fy-i0;var jx=Math.max(0,Math.min(NX-1,Math.round((sy+1)/2*(NX-1))));x.clearRect(0,0,W,H);x.fillStyle='#efe9fb';x.fillRect(0,0,W,H);drawGrid(IM,1,jx,i0,i1,fr);for(var v=0;v<VOWELS.length;v++){var g=VOWELS[v];if(mouthW[g]>.003)drawAtlas(g,mouthW[g],jx,i0,i1,fr);}if(blinking){var u=Math.sin(bt/0.26*Math.PI);x.save();var ex=W*0.5+sx*14,ey=H*0.345,rw=W*0.20,rh=H*0.075;var grd=x.createRadialGradient(ex,ey,0,ex,ey,rw);grd.addColorStop(0,'rgba(239,233,251,'+(0.85*u)+')');grd.addColorStop(1,'rgba(239,233,251,0)');x.fillStyle=grd;x.beginPath();x.ellipse(ex,ey,rw,rh,0,0,7);x.fill();x.restore();}}
+// vowel frames are raw THA4 512 (more margin) vs closed=340 (tighter) -> scale up 1.572x and
+// nudge so the vowel avatar registers onto the closed avatar (measured: closed w130/h172 cy100,
+// vowel w83/h109 cy69.5 on a 200px probe). Without this the open-mouth frame renders small/offset.
+var MA=1.572,MDW=W*MA,MDH=H*MA,MDX=(W-MDW)/2,MDY=-20;
+function drawAtlas(v,a,jx,i0,i1,fr){if(a<=.003||!ATLrdy[v])return;var im=ATL[v],cw=im.naturalWidth/NY,ch=im.naturalHeight/NX;x.globalAlpha=a;x.drawImage(im,i0*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);if(fr>.02){x.globalAlpha=a*fr;x.drawImage(im,i1*cw,jx*ch,cw,ch,MDX,MDY,MDW,MDH);}x.globalAlpha=1;}
+function draw(){var fy=(sx+1)/2*(NY-1),i0=Math.floor(fy),i1=Math.min(NY-1,i0+1),fr=fy-i0;var jx=Math.max(0,Math.min(NX-1,Math.round((sy+1)/2*(NX-1))));x.clearRect(0,0,W,H);x.fillStyle='#efe9fb';x.fillRect(0,0,W,H);drawGrid(IM,1,jx,i0,i1,fr);for(var v=0;v<VOWELS.length;v++){var g=VOWELS[v];if(mouthW[g]>.003)drawAtlas(g,mouthW[g],jx,i0,i1,fr);}}
 loadVoice('wagahai');
 function req(){requestAnimationFrame(tick);}
 </script></body></html>
